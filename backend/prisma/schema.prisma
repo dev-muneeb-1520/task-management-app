@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  fullName     String
+  email        String   @unique
+  password     String
+  refreshToken String?
+  tasks        Task[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Task {
+  id             String          @id @default(cuid())
+  title          String
+  description    String
+  priority       TaskPriority
+  status         TaskStatus      @default(TODO)
+  dueDate        DateTime
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([userId, priority])
+  @@index([userId, status])
+  @@index([userId, dueDate])
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  position    Int
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([taskId, position])
+}
