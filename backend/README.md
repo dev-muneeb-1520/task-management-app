@@ -73,21 +73,144 @@ REFRESH_TOKEN_EXPIRES_IN="30d"
 CORS_ORIGIN="http://localhost:3000"
 ~~~
 
-### Step 3: Create the local PostgreSQL database
+### Step 3: Install and Set Up PostgreSQL
 
-Example (macOS/Homebrew):
+Choose your operating system below. Pick either the Terminal method or the pgAdmin UI method — both lead to the same result.
+
+---
+
+#### macOS — Terminal (Homebrew)
+
+**Install PostgreSQL:**
 
 ~~~bash
 brew install postgresql@17
-brew services start postgresql@17
-createdb task_management_app
 ~~~
 
-If your setup requires username/owner explicitly:
+**Start the service:**
 
 ~~~bash
-createdb -U YOUR_DB_USER -O YOUR_DB_USER task_management_app
+brew services start postgresql@17
 ~~~
+
+**Open the PostgreSQL shell:**
+
+~~~bash
+psql postgres
+~~~
+
+**Create a user and database:**
+
+~~~sql
+CREATE USER taskuser WITH PASSWORD 'yourpassword';
+CREATE DATABASE task_management_app OWNER taskuser;
+GRANT ALL PRIVILEGES ON DATABASE task_management_app TO taskuser;
+\q
+~~~
+
+**Set your DATABASE_URL in .env:**
+
+~~~dotenv
+DATABASE_URL="postgresql://taskuser:yourpassword@localhost:5432/task_management_app?schema=public"
+~~~
+
+---
+
+#### macOS — pgAdmin UI
+
+1. Download and install pgAdmin 4 from https://www.pgadmin.org/download/pgadmin-4-macos/
+2. Open pgAdmin. It opens in your browser automatically.
+3. In the left panel, expand **Servers → PostgreSQL**.
+   - If no server is listed, right-click **Servers → Register → Server**.
+   - Name: `Local`, Host: `localhost`, Port: `5432`, Username: `postgres`.
+4. Right-click **Login/Group Roles → Create → Login/Group Role**.
+   - Name tab: `taskuser`
+   - Definition tab: set Password to `yourpassword`
+   - Privileges tab: enable **Can login**
+   - Click **Save**.
+5. Right-click **Databases → Create → Database**.
+   - Database: `task_management_app`
+   - Owner: `taskuser`
+   - Click **Save**.
+6. Set your DATABASE_URL in .env:
+
+~~~dotenv
+DATABASE_URL="postgresql://taskuser:yourpassword@localhost:5432/task_management_app?schema=public"
+~~~
+
+---
+
+#### Windows — Terminal (PowerShell)
+
+**Install PostgreSQL:**
+
+Download and run the installer from https://www.postgresql.org/download/windows/
+
+During install, set a password for the `postgres` superuser. Note it down.
+
+**After install, open PowerShell or Command Prompt and connect:**
+
+~~~powershell
+psql -U postgres
+~~~
+
+Enter your postgres password when prompted.
+
+**Create a user and database:**
+
+~~~sql
+CREATE USER taskuser WITH PASSWORD 'yourpassword';
+CREATE DATABASE task_management_app OWNER taskuser;
+GRANT ALL PRIVILEGES ON DATABASE task_management_app TO taskuser;
+\q
+~~~
+
+If `psql` is not found, add it to PATH. Default install path:
+
+~~~text
+C:\Program Files\PostgreSQL\17\bin
+~~~
+
+To add it: open **System Properties → Environment Variables → Path → Edit → New** and paste the path above.
+
+**Set your DATABASE_URL in .env:**
+
+~~~dotenv
+DATABASE_URL="postgresql://taskuser:yourpassword@localhost:5432/task_management_app?schema=public"
+~~~
+
+---
+
+#### Windows — pgAdmin UI
+
+1. pgAdmin is bundled with the PostgreSQL Windows installer. Open it from the Start Menu.
+2. It opens in your browser. Set a master password if prompted.
+3. In the left panel, expand **Servers → PostgreSQL 17**.
+   - Enter your postgres password if prompted and click **Save Password**.
+4. Right-click **Login/Group Roles → Create → Login/Group Role**.
+   - Name tab: `taskuser`
+   - Definition tab: set Password to `yourpassword`
+   - Privileges tab: enable **Can login**
+   - Click **Save**.
+5. Right-click **Databases → Create → Database**.
+   - Database: `task_management_app`
+   - Owner: `taskuser`
+   - Click **Save**.
+6. Set your DATABASE_URL in .env:
+
+~~~dotenv
+DATABASE_URL="postgresql://taskuser:yourpassword@localhost:5432/task_management_app?schema=public"
+~~~
+
+---
+
+**Verify the connection (both platforms):**
+
+~~~bash
+npx prisma db pull
+~~~
+
+If this returns no error, your DATABASE_URL is correct and Prisma can connect.
 
 ### Step 4: Apply Prisma migrations
 
