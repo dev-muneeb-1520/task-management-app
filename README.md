@@ -28,13 +28,20 @@ task-management-app/
 
 ## Quick Start
 
-### 1) Prerequisites
+### 1) Clone the Repository
+
+```bash
+git clone https://github.com/dev-muneeb-1520/task-management-app.git
+cd task-management-app
+```
+
+### 2) Prerequisites
 
 - Node.js 20–23
 - PostgreSQL 14+
 - npm 10+
 
-### 2) Set up the backend
+### 3) Set up the backend
 
 ```bash
 cd backend
@@ -49,7 +56,7 @@ Swagger API docs: http://localhost:3001/api
 
 See [backend/README.md](backend/README.md) for full setup details.
 
-### 3) Set up the frontend
+### 4) Set up the frontend
 
 ```bash
 cd frontend
