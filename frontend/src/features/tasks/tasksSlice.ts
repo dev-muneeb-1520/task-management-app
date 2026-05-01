@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { taskService } from "@/services/taskService";
+import { toast } from "@/lib/toast";
 import type { RootState } from "@/store";
 import type {
   Task,
@@ -257,10 +258,12 @@ const tasksSlice = createSlice({
       .addCase(createTask.fulfilled, (state, action) => {
         state.isSaving = false;
         state.currentTask = action.payload;
+        toast.success("Task created successfully!");
       })
       .addCase(createTask.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to create task");
       });
 
     // updateTask
@@ -272,10 +275,12 @@ const tasksSlice = createSlice({
       .addCase(updateTask.fulfilled, (state, action) => {
         state.isSaving = false;
         state.currentTask = action.payload;
+        toast.success("Task updated successfully!");
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to update task");
       });
 
     builder
@@ -286,10 +291,12 @@ const tasksSlice = createSlice({
       .addCase(updateTaskStatus.fulfilled, (state, action) => {
         state.isSaving = false;
         state.currentTask = action.payload;
+        toast.success("Task status updated!");
       })
       .addCase(updateTaskStatus.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to update status");
       });
 
     // deleteTask
@@ -308,10 +315,12 @@ const tasksSlice = createSlice({
         );
         state.pagination.hasNextPage = state.pagination.page < state.pagination.totalPages;
         state.pagination.hasPreviousPage = state.pagination.page > 1;
+        toast.success("Task deleted.");
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to delete task");
       });
 
     builder
@@ -329,10 +338,12 @@ const tasksSlice = createSlice({
           hasNextPage: false,
           hasPreviousPage: false,
         };
+        toast.success("All tasks deleted.");
       })
       .addCase(deleteAllTasks.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to delete tasks");
       });
 
     builder
@@ -353,10 +364,12 @@ const tasksSlice = createSlice({
         );
         state.pagination.hasNextPage = state.pagination.page < state.pagination.totalPages;
         state.pagination.hasPreviousPage = state.pagination.page > 1;
+        toast.success(`${summary.deletedCount} task${summary.deletedCount === 1 ? "" : "s"} deleted.`);
       })
       .addCase(deleteSelectedTasks.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Failed to delete selected tasks");
       });
   },
 });

@@ -1,6 +1,12 @@
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH";
 
+export interface TaskUser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -8,7 +14,10 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate?: string;
-  userId?: string;
+  assignedToId?: string;
+  createdById?: string;
+  assignedTo?: TaskUser;
+  createdBy?: TaskUser;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +35,7 @@ export interface TaskListQuery {
   search?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  assignedToId?: string;
   page?: number;
   limit?: number;
 }
@@ -118,16 +128,19 @@ export interface ChecklistProgress {
 export interface ChecklistListResponse {
   items: ChecklistItem[];
   progress: ChecklistProgress;
+  taskStatus?: TaskStatus;
 }
 
 export interface ChecklistMutationResponse {
   item: ChecklistItem;
   progress: ChecklistProgress;
+  taskStatus?: TaskStatus;
 }
 
 export interface DeleteChecklistItemResponse {
   message: string;
   progress: ChecklistProgress;
+  taskStatus?: TaskStatus;
 }
 
 export interface CreateChecklistItemDto {
@@ -149,6 +162,7 @@ export interface CreateTaskDto {
   status?: TaskStatus;
   priority: TaskPriority;
   dueDate: string;
+  assignedToId?: string;
 }
 
 export type UpdateTaskDto = Partial<CreateTaskDto>;

@@ -544,5 +544,20 @@ npm run start:prod
 - API bootstrap and Swagger setup: src/main.ts
 - Auth controller/service: src/auth/auth.controller.ts, src/auth/auth.service.ts
 - Tasks controller/service: src/tasks/tasks.controller.ts, src/tasks/tasks.service.ts
+- Admin controller/service: src/admin/admin.controller.ts, src/admin/admin.service.ts
 - Prisma schema: prisma/schema.prisma
 - Environment template: .env.example
+
+## 15) API Changes & Deprecations
+
+### Removed Endpoints
+- **PATCH /admin/users/{id}/role** — Removed (user roles can no longer be changed via API)
+  - Reason: Role management should be handled separately or not exposed through the API
+  - All user roles are now fixed at account creation (ADMIN or USER)
+
+### Available Admin Endpoints
+- **GET /admin/stats** — Get platform-wide statistics
+- **GET /admin/users** — Get paginated list of all users with filtering and sorting
+- **GET /admin/users/all** — Get all active users for task assignment (no pagination)
+- **GET /admin/users/:id** — Get user details by ID
+- **PATCH /admin/users/:id/status** — Activate or deactivate a user account

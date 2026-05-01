@@ -303,3 +303,16 @@ For deployment:
 - Task list page: src/app/(dashboard)/dashboard/tasks/page.tsx
 - Dashboard page: src/app/(dashboard)/dashboard/page.tsx
 - Environment template: .env.example
+
+## 19) Recent Changes
+
+### v1.1 — Admin Panel & UI Enhancements
+- ✅ Added admin panel with user management dashboard
+- ✅ Implemented live user search with filtering (status) and sorting (name, date, task count)
+- ✅ Added user status toggling (activate/deactivate accounts)
+- ✅ Improved dropdown component with portal rendering for table rows
+- ✅ Enhanced task page search and filter UI responsiveness
+- ✅ Unified all frontend dropdowns to custom-styled `CustomSelect` component
+- ✅ Added calendar date picker with past-date blocking for task due dates
+- ✅ Auto-sync task status to IN_PROGRESS/DONE based on checklist completion
+- ❌ Removed user role API endpoint — roles are now fixed at account creation

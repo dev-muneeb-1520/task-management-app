@@ -9,14 +9,24 @@ import {
   LogOut,
   CheckCircle2,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 
-const navItems = [
-  { href: "/dashboard",       label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/tasks", label: "Tasks",     icon: CheckSquare },
+const userNavItems = [
+  { href: "/dashboard",       label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/dashboard/tasks", label: "My Tasks",    icon: CheckSquare },
+];
+
+const adminMenuItems = [
+  { href: "/admin",           label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/dashboard/tasks", label: "Users Tasks", icon: CheckSquare },
+];
+
+const adminSectionItems = [
+  { href: "/admin/users", label: "Users", icon: Users },
 ];
 
 interface SidebarProps {
@@ -44,7 +54,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-gray-800">
         <div className="flex items-center justify-between">
-        <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2.5 group">
+        <Link href={user?.role === "ADMIN" ? "/admin" : "/dashboard"} onClick={onClose} className="flex items-center gap-2.5 group">
           <div className="h-8 w-8 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
             <CheckCircle2 className="h-5 w-5 text-white" />
           </div>
@@ -66,13 +76,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <p className="px-3 mb-2 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
           Menu
         </p>
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
+        {(user?.role === "ADMIN" ? adminMenuItems : userNavItems).map(({ href, label, icon: Icon }) => {
+          // Use exact match for top-level dashboard/admin routes so nested routes don't double-highlight.
+          const isExactMatchRoute = href === "/admin" || href === "/dashboard";
+          const isActive = isExactMatchRoute
+            ? pathname === href
+            : pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
-                           onClick={onClose}
+              onClick={onClose}
               className={cn(
                 "group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive
@@ -88,6 +102,36 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           );
         })}
+
+        {user?.role === "ADMIN" && (
+          <>
+            <p className="px-3 mt-4 mb-2 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
+              Admin
+            </p>
+            {adminSectionItems.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={cn(
+                    "group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={cn("h-5 w-5 shrink-0 transition-transform duration-200", !isActive && "group-hover:scale-110")} />
+                    {label}
+                  </div>
+                  {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-60" />}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* User section */}

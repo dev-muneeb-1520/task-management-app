@@ -217,6 +217,13 @@ function LoginPageContent() {
               Create one
             </Link>
           </p>
+
+          <p className="mt-3 text-center text-xs text-gray-400">
+            Are you an admin?{" "}
+            <Link href="/admin/login" className="text-purple-600 hover:text-purple-700 font-semibold transition-colors">
+              Admin sign in →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

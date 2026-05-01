@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { TaskPriority } from '../enums/task-priority.enum';
 import { TaskStatus } from '../enums/task-status.enum';
 
@@ -32,4 +32,12 @@ export class CreateTaskDto {
   })
   @IsDateString()
   dueDate: string;
+
+  @ApiPropertyOptional({
+    example: 'cuid123',
+    description: 'User ID to assign the task to (admin only — omit to assign to self)',
+  })
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
 }

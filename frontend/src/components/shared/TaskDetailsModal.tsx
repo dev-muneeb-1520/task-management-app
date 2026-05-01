@@ -21,6 +21,7 @@ import type { ChecklistItem, ChecklistProgress, Task } from "@/types/task.types"
 
 interface Props {
   task: Task;
+  isAdmin?: boolean;
   onClose: () => void;
   onEdit: (task: Task) => void;
 }
@@ -69,7 +70,8 @@ function PriorityBadge({ priority }: { priority: Task["priority"] }) {
   return <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-600">Low</span>;
 }
 
-export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
+export default function TaskDetailsModal({ task, isAdmin = false, onClose, onEdit }: Props) {
+  const [taskStatus, setTaskStatus] = useState<Task["status"]>(task.status);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [progress, setProgress] = useState<ChecklistProgress>({
     totalItems: 0,
@@ -94,6 +96,9 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
       const data = await taskService.getChecklistItems(task.id);
       setChecklist(data.items);
       setProgress(data.progress);
+      if (data.taskStatus) {
+        setTaskStatus(data.taskStatus);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to load checklist items.";
@@ -106,6 +111,10 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
   useEffect(() => {
     void loadChecklist();
   }, [task.id]);
+
+  useEffect(() => {
+    setTaskStatus(task.status);
+  }, [task.status]);
 
   useLayoutEffect(() => {
     const previousPositions = previousPositionsRef.current;
@@ -166,6 +175,9 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
       const response = await taskService.createChecklistItem(task.id, { title });
       setChecklist((prev) => [...prev, response.item].sort((a, b) => a.position - b.position));
       setProgress(response.progress);
+      if (response.taskStatus) {
+        setTaskStatus(response.taskStatus);
+      }
       setNewItemTitle("");
     } catch (error) {
       const message =
@@ -190,6 +202,9 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
         )
       );
       setProgress(response.progress);
+      if (response.taskStatus) {
+        setTaskStatus(response.taskStatus);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to update checklist item.";
@@ -227,6 +242,9 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
         )
       );
       setProgress(response.progress);
+      if (response.taskStatus) {
+        setTaskStatus(response.taskStatus);
+      }
       cancelChecklistItemEdit();
     } catch (error) {
       const message =
@@ -254,6 +272,9 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
 
       setChecklist((prev) => prev.filter((item) => item.id !== itemId));
       setProgress(response.progress);
+      if (response.taskStatus) {
+        setTaskStatus(response.taskStatus);
+      }
     } catch (error) {
       setDeletingItemId(null);
       const message =
@@ -358,7 +379,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Status</p>
-                <StatusBadge status={task.status} />
+                <StatusBadge status={taskStatus} />
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Priority</p>
@@ -378,7 +399,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Owner</p>
                 <p className="mt-1 text-sm text-gray-700 inline-flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-gray-400" />
-                  {task.userId || "-"}
+                  {task.assignedTo?.fullName ?? task.assignedToId ?? "-"}
                 </p>
               </div>
             </div>
@@ -394,7 +415,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
               </div>
             </div>
 
-            <div className="border-t border-gray-100 pt-4">
+              <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Checklist
@@ -411,30 +432,32 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
                 />
               </div>
 
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="text"
-                  value={newItemTitle}
-                  onChange={(event) => setNewItemTitle(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void handleAddChecklistItem();
-                    }
-                  }}
-                  placeholder="Add checklist item"
-                  className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleAddChecklistItem()}
-                  disabled={isCreatingItem || !newItemTitle.trim()}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add
-                </button>
-              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newItemTitle}
+                    onChange={(event) => setNewItemTitle(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleAddChecklistItem();
+                      }
+                    }}
+                    placeholder="Add checklist item"
+                    className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleAddChecklistItem()}
+                    disabled={isCreatingItem || !newItemTitle.trim()}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add
+                  </button>
+                </div>
+              )}
 
               {checklistError && (
                 <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -511,7 +534,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
                         )}
 
                         <div className="flex items-center gap-1">
-                          {isEditing ? (
+                          {isAdmin && isEditing ? (
                             <>
                               <button
                                 type="button"
@@ -531,7 +554,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
                                 <X className="h-3.5 w-3.5" />
                               </button>
                             </>
-                          ) : (
+                          ) : isAdmin ? (
                             <>
                               <button
                                 type="button"
@@ -570,7 +593,7 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </>
-                          )}
+                          ) : null}
                         </div>
                       </li>
                     );
@@ -588,13 +611,15 @@ export default function TaskDetailsModal({ task, onClose, onEdit }: Props) {
             >
               Close
             </button>
-            <button
-              type="button"
-              onClick={() => onEdit(task)}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all duration-150 active:scale-95"
-            >
-              Edit Task
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => onEdit(task)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all duration-150 active:scale-95"
+              >
+                Edit Task
+              </button>
+            )}
           </div>
         </div>
       </div>

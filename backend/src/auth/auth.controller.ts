@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Patch, Post, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { JwtGuard } from '../common/guards/jwt.guard';
 import { AuthService } from './auth.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -38,17 +42,51 @@ export class AuthController {
   }
 
   @Get('profile')
+  @UseGuards(JwtGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile (requires access token)' })
   @ApiResponse({ status: 200, description: 'User profile returned.' })
   @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
-  async profile(@Headers('authorization') authorization?: string) {
-    if (!authorization?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header.');
-    }
+  profile(@CurrentUser() user: any) {
+    return user;
+  }
 
-    const accessToken = authorization.slice(7);
-    return this.authService.getProfileFromAccessToken(accessToken);
+  @Patch('profile')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
+  updateProfile(
+    @CurrentUser() user: { id: string },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.id, dto);
+  }
+
+  @Patch('password')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully.' })
+  @ApiResponse({ status: 401, description: 'Current password incorrect or token invalid.' })
+  changePassword(
+    @CurrentUser() user: { id: string },
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.id, dto);
+  }
+
+  @Delete('account')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete own account permanently' })
+  @ApiResponse({ status: 200, description: 'Account deleted successfully.' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
+  deleteAccount(@CurrentUser() user: { id: string }) {
+    return this.authService.deleteAccount(user.id);
   }
 
   @Post('logout')

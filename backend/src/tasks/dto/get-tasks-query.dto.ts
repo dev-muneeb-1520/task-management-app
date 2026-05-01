@@ -37,4 +37,12 @@ export class GetTasksQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Filter by assigned user ID (admin only)',
+    example: 'cuid123',
+  })
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
 }

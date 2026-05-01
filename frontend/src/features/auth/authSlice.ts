@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { authService } from "@/services/authService";
 import { authTokenStorage } from "@/lib/authTokens";
+import { toast } from "@/lib/toast";
 import type { User, LoginCredentials, RegisterCredentials } from "@/types/auth.types";
 
 interface AuthState {
@@ -70,6 +71,7 @@ export const login = createAsyncThunk(
         access_token: data.access_token,
         refresh_token: data.refresh_token,
       });
+      authTokenStorage.setRole(data.user.role);
       return data.user;
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Login failed"));
@@ -86,6 +88,7 @@ export const register = createAsyncThunk(
         access_token: data.access_token,
         refresh_token: data.refresh_token,
       });
+      authTokenStorage.setRole(data.user.role);
       return data.user;
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Registration failed"));
@@ -127,6 +130,7 @@ const authSlice = createSlice({
         state.isInitialized = true;
         state.user = action.payload;
         state.isAuthenticated = Boolean(action.payload);
+        if (action.payload?.role) authTokenStorage.setRole(action.payload.role);
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isLoading = false;
@@ -146,10 +150,12 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        toast.success(`Welcome back, ${action.payload.fullName.split(" ")[0]}!`);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Login failed");
       });
 
     // register
@@ -162,10 +168,12 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        toast.success("Account created successfully!");
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        toast.error(action.payload as string ?? "Registration failed");
       });
 
     // logout

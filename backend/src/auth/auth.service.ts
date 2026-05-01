@@ -9,8 +9,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { StringValue } from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -64,6 +66,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated. Please contact an administrator.');
+    }
+
     return this.buildAuthResponse(user);
   }
 
@@ -94,6 +100,10 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is not recognized.');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated. Please contact an administrator.');
+    }
+
     return this.buildAuthResponse(user);
   }
 
@@ -116,6 +126,8 @@ export class AuthService {
         id: true,
         fullName: true,
         email: true,
+        role: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -123,6 +135,10 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('User not found.');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated.');
     }
 
     return user;
@@ -149,10 +165,75 @@ export class AuthService {
     return { message: 'Logged out successfully.' };
   }
 
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const data: { fullName?: string; email?: string } = {};
+
+    if (dto.fullName !== undefined) data.fullName = dto.fullName.trim();
+
+    if (dto.email !== undefined) {
+      const email = dto.email.toLowerCase().trim();
+      const existing = await this.prisma.user.findFirst({
+        where: { email, NOT: { id: userId } },
+      });
+      if (existing) {
+        throw new ConflictException('Email is already in use.');
+      }
+      data.email = email;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('At least one field is required.');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return user;
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    if (dto.newPassword !== dto.confirmNewPassword) {
+      throw new BadRequestException('New passwords do not match.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found.');
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isValid) {
+      throw new UnauthorizedException('Current password is incorrect.');
+    }
+
+    const hashed = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+    });
+
+    return { message: 'Password changed successfully.' };
+  }
+
+  async deleteAccount(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { message: 'Account deleted successfully.' };
+  }
+
   private async buildAuthResponse(user: {
     id: string;
     fullName: string;
     email: string;
+    role: import('@prisma/client').Role;
     password?: string;
     refreshToken?: string | null;
     createdAt: Date;
@@ -192,6 +273,7 @@ export class AuthService {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },

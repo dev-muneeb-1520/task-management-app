@@ -33,7 +33,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isInitialized || !isAuthenticated) return;
-    void fetchTaskDashboard();
+    void fetchTaskDashboard().catch(() => {});
   }, [fetchTaskDashboard, isAuthenticated, isInitialized]);
 
   const statsData = dashboard?.stats;

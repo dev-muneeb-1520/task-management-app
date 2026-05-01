@@ -130,6 +130,15 @@ Base URL: `http://localhost:3001`
 
 Full API reference with request/response examples: [backend/README.md](backend/README.md)
 
+## Recent Changes
+
+### v1.1 — Admin Features & API Updates
+- ✅ Added admin panel with user management
+- ✅ Added admin dashboard with platform-wide statistics
+- ✅ Added live user search with filtering and sorting
+- ✅ Added user status management (activate/deactivate)
+- ❌ Removed `PATCH /admin/users/{id}/role` endpoint — user roles are now fixed at account creation
+
 ## License
 
 MIT

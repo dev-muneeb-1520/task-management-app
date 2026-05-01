@@ -6,6 +6,7 @@ import TaskDetailsModal from "@/components/shared/TaskDetailsModal";
 import { useTasks } from "@/features/tasks/useTasks";
 import { useAuth } from "@/features/auth/useAuth";
 import TaskFormModal from "@/components/shared/TaskFormModal";
+import CustomSelect from "@/components/ui/CustomSelect";
 import type { Task, TaskStatus, TaskPriority } from "@/types/task.types";
 
 const STATUS_TABS: { key: "ALL" | TaskStatus; label: string }[] = [
@@ -37,7 +38,8 @@ function PriorityBadge({ priority }: { priority: TaskPriority }) {
 export default function TasksPage() {
   const TASKS_PAGE_LIMIT = 10;
 
-  const { isInitialized, isAuthenticated } = useAuth();
+  const { user, isInitialized, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const {
     tasks,
     error,
@@ -83,7 +85,7 @@ export default function TasksPage() {
       search: deferredSearchQuery.trim() || undefined,
       status: activeTab === "ALL" ? undefined : activeTab,
       priority: priorityFilter === "ALL" ? undefined : priorityFilter,
-    });
+    }).catch(() => {});
   }, [
     activeTab,
     deferredSearchQuery,
@@ -272,6 +274,18 @@ export default function TasksPage() {
     setShowModal(true);
   };
 
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedTask(null);
+    void fetchTasks({
+      page,
+      limit: TASKS_PAGE_LIMIT,
+      search: deferredSearchQuery.trim() || undefined,
+      status: activeTab === "ALL" ? undefined : activeTab,
+      priority: priorityFilter === "ALL" ? undefined : priorityFilter,
+    }).catch(() => {});
+  };
+
   return (
     <>
       {/* ── Page header ── */}
@@ -279,50 +293,54 @@ export default function TasksPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {pagination.total} total · page {pagination.page} of {pagination.totalPages}
+            {isAdmin
+              ? `${pagination.total} total · page ${pagination.page} of ${pagination.totalPages}`
+              : `${pagination.total} task${pagination.total === 1 ? "" : "s"} assigned to you`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDeleteSelected()}
-            disabled={selectedTaskIds.length === 0 || isBulkDeleting || isSaving}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-sm font-semibold hover:bg-amber-100 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isBulkDeleting && selectedTaskIds.length > 0 ? (
-              <div className="h-4 w-4 rounded-full border-2 border-amber-300 border-t-amber-600 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete Selected ({selectedTaskIds.length})
-          </button>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleDeleteSelected()}
+              disabled={selectedTaskIds.length === 0 || isBulkDeleting || isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-sm font-semibold hover:bg-amber-100 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isBulkDeleting && selectedTaskIds.length > 0 ? (
+                <div className="h-4 w-4 rounded-full border-2 border-amber-300 border-t-amber-600 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete Selected ({selectedTaskIds.length})
+            </button>
 
-          <button
-            type="button"
-            onClick={handleDeleteAll}
-            disabled={tasks.length === 0 || isBulkDeleting || isSaving}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 text-red-700 border border-red-200 text-sm font-semibold hover:bg-red-100 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isBulkDeleting ? (
-              <div className="h-4 w-4 rounded-full border-2 border-red-300 border-t-red-600 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete All
-          </button>
+            <button
+              type="button"
+              onClick={handleDeleteAll}
+              disabled={tasks.length === 0 || isBulkDeleting || isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 text-red-700 border border-red-200 text-sm font-semibold hover:bg-red-100 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isBulkDeleting ? (
+                <div className="h-4 w-4 rounded-full border-2 border-red-300 border-t-red-600 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete All
+            </button>
 
-          <button
-            onClick={() => { setEditingTask(null); setShowModal(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all duration-150"
-          >
-            <Plus className="h-4 w-4" />
-            New Task
-          </button>
-        </div>
+            <button
+              onClick={() => { setEditingTask(null); setShowModal(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-sm shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all duration-150"
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5 animate-fade-in-up" style={{ animationDelay: "80ms" }}>
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -331,17 +349,21 @@ export default function TasksPage() {
             placeholder="Search tasks…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
           />
         </div>
         {/* Priority filter */}
-        <select
+        <CustomSelect
           value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value as "ALL" | TaskPriority)}
-          className="px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition cursor-pointer"
-        >
-          {PRIORITY_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
+          onChange={(value) => setPriorityFilter(value as "ALL" | TaskPriority)}
+          options={PRIORITY_OPTIONS.map((option) => ({
+            value: option.key,
+            label: option.label,
+          }))}
+          className="w-36 sm:w-40"
+          size="sm"
+          usePortal={true}
+        />
       </div>
 
       {/* ── Status tabs ── */}
@@ -388,12 +410,12 @@ export default function TasksPage() {
             <ListTodo className="h-5 w-5 text-gray-400" />
           </div>
           <p className="text-sm font-semibold text-gray-700">
-            {searchQuery || activeTab !== "ALL" || priorityFilter !== "ALL" ? "No tasks match your filters" : "No tasks yet"}
+            {searchQuery || activeTab !== "ALL" || priorityFilter !== "ALL" ? "No tasks match your filters" : "No tasks assigned yet"}
           </p>
           <p className="text-xs text-gray-400 mt-1">
             {searchQuery || activeTab !== "ALL" || priorityFilter !== "ALL"
               ? "Try adjusting your search or filters"
-              : "Click \"New Task\" to create your first one"}
+              : isAdmin ? "Click \"New Task\" to create your first one" : "Your admin will assign tasks to you"}
           </p>
         </div>
       ) : (
@@ -401,15 +423,17 @@ export default function TasksPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                <th className="text-left px-4 py-3 w-12">
-                  <input
-                    type="checkbox"
-                    checked={isAllVisibleSelected}
-                    onChange={toggleSelectAllVisible}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30"
-                    aria-label="Select all tasks on this page"
-                  />
-                </th>
+                {isAdmin && (
+                  <th className="text-left px-4 py-3 w-12">
+                    <input
+                      type="checkbox"
+                      checked={isAllVisibleSelected}
+                      onChange={toggleSelectAllVisible}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30"
+                      aria-label="Select all tasks on this page"
+                    />
+                  </th>
+                )}
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-5/12">Task</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Priority</th>
@@ -428,15 +452,17 @@ export default function TasksPage() {
                   }`}
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selectedTaskIds.includes(task.id)}
-                      onChange={() => toggleTaskSelection(task.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30"
-                      aria-label={`Select task ${task.title}`}
-                    />
-                  </td>
+                  {isAdmin && (
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.includes(task.id)}
+                        onChange={() => toggleTaskSelection(task.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/30"
+                        aria-label={`Select task ${task.title}`}
+                      />
+                    </td>
+                  )}
                   <td className="px-5 py-4">
                     <div>
                       <p className={`font-medium text-gray-900 truncate max-w-xs ${task.status === "DONE" ? "line-through text-gray-400" : ""}`}>
@@ -448,22 +474,28 @@ export default function TasksPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={task.status}
-                        onChange={(e) => void handleStatusChange(task, e.target.value as TaskStatus)}
-                        disabled={statusUpdatingId === task.id}
-                        className="text-xs font-semibold border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/30 rounded-lg cursor-pointer py-0.5 disabled:opacity-60"
-                      >
-                        <option value="TODO">To Do</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="DONE">Done</option>
-                      </select>
-                      {statusUpdatingId === task.id && (
-                        <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-300 border-t-blue-600 animate-spin" />
-                      )}
-                    </div>
-                    <div className="mt-1"><StatusBadge status={task.status} /></div>
+                    <>
+                      <div className="flex items-center gap-2">
+                        <CustomSelect
+                          value={task.status}
+                          onChange={(value) => void handleStatusChange(task, value as TaskStatus)}
+                          options={[
+                            { value: "TODO", label: "To Do" },
+                            { value: "IN_PROGRESS", label: "In Progress" },
+                            { value: "DONE", label: "Done" },
+                          ]}
+                          disabled={statusUpdatingId === task.id}
+                          size="sm"
+                          variant="ghost"
+                          triggerClassName="!px-0 !py-0 text-xs font-semibold"
+                          menuClassName="w-40"
+                        />
+                        {statusUpdatingId === task.id && (
+                          <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-300 border-t-blue-600 animate-spin" />
+                        )}
+                      </div>
+                      <div className="mt-1"><StatusBadge status={task.status} /></div>
+                    </>
                   </td>
                   <td className="px-4 py-4"><PriorityBadge priority={task.priority} /></td>
                   <td className="px-4 py-4 hidden md:table-cell">
@@ -487,7 +519,7 @@ export default function TasksPage() {
                           ? <div className="h-3.5 w-3.5 rounded-full border-2 border-indigo-300 border-t-indigo-500 animate-spin" />
                           : <Eye className="h-3.5 w-3.5" />}
                       </button>
-                      <button
+                      {isAdmin && <button
                         onClick={() => void handleEdit(task)}
                         disabled={editingId === task.id}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-150 active:scale-90 disabled:opacity-40"
@@ -496,8 +528,8 @@ export default function TasksPage() {
                         {editingId === task.id
                           ? <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-300 border-t-blue-500 animate-spin" />
                           : <Pencil className="h-3.5 w-3.5" />}
-                      </button>
-                      <button
+                      </button>}
+                      {isAdmin && <button
                         onClick={() => handleDelete(task.id)}
                         disabled={deletingId === task.id}
                         className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all duration-150 active:scale-90 disabled:opacity-40"
@@ -507,7 +539,7 @@ export default function TasksPage() {
                           ? <div className="h-3.5 w-3.5 rounded-full border-2 border-red-300 border-t-red-500 animate-spin" />
                           : <Trash2 className="h-3.5 w-3.5" />
                         }
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>
@@ -542,7 +574,7 @@ export default function TasksPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {isAdmin && showModal && (
         <TaskFormModal
           onClose={() => { setShowModal(false); setEditingTask(null); }}
           initialData={editingTask ?? undefined}
@@ -552,10 +584,8 @@ export default function TasksPage() {
       {showDetailsModal && selectedTask && (
         <TaskDetailsModal
           task={selectedTask}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedTask(null);
-          }}
+          isAdmin={isAdmin}
+          onClose={closeDetailsModal}
           onEdit={handleEditFromDetails}
         />
       )}
