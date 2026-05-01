@@ -315,4 +315,3 @@ For deployment:
 - ✅ Unified all frontend dropdowns to custom-styled `CustomSelect` component
 - ✅ Added calendar date picker with past-date blocking for task due dates
 - ✅ Auto-sync task status to IN_PROGRESS/DONE based on checklist completion
-- ❌ Removed user role API endpoint — roles are now fixed at account creation
