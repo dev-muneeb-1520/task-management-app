@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, CheckCircle2 } from "lucide-react";
+import NotificationsBell from "@/components/layout/NotificationsBell";
 import Sidebar from "@/components/layout/Sidebar";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <span className="text-sm font-bold text-gray-900">TaskFlow</span>
           </div>
+          <div className="ml-auto">
+            <NotificationsBell notificationsPath="/dashboard/notifications" />
+          </div>
+        </header>
+
+        <header className="hidden md:flex items-center justify-end px-8 py-4 bg-white border-b border-gray-200 shrink-0">
+          <NotificationsBell notificationsPath="/dashboard/notifications" />
         </header>
 
         {/* Page content */}

@@ -3,7 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role, TaskPriority, TaskStatus } from '@prisma/client';
+import { NotificationType, Role, TaskPriority, TaskStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChecklistItemDto } from './dto/create-checklist-item.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -15,6 +16,8 @@ import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 type AuthenticatedUser = { id: string; role: Role };
+
+const taskActionUrl = (taskId: string) => `/dashboard/tasks?taskId=${taskId}`;
 
 const TASK_WITH_USERS_SELECT = {
   id: true,
@@ -33,7 +36,10 @@ const TASK_WITH_USERS_SELECT = {
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createTask(user: AuthenticatedUser, createTaskDto: CreateTaskDto) {
     const assignedToId =
@@ -49,7 +55,7 @@ export class TasksService {
       if (!target) throw new NotFoundException('Assigned user not found.');
     }
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         title: createTaskDto.title.trim(),
         description: createTaskDto.description.trim(),
@@ -61,6 +67,21 @@ export class TasksService {
       },
       select: TASK_WITH_USERS_SELECT,
     });
+
+    if (user.role === Role.ADMIN && assignedToId !== user.id) {
+      await this.notificationsService.createForUser({
+        recipientUserId: assignedToId,
+        title: 'New task assigned',
+        message: `A new task was assigned to you: ${task.title}`,
+        type: NotificationType.TASK_ASSIGNED,
+        entityType: 'TASK',
+        entityId: task.id,
+        actionUrl: taskActionUrl(task.id),
+        metadata: { priority: task.priority, dueDate: task.dueDate.toISOString() },
+      });
+    }
+
+    return task;
   }
 
   async updateTask(user: AuthenticatedUser, taskId: string, updateTaskDto: UpdateTaskDto) {
@@ -84,11 +105,48 @@ export class TasksService {
       throw new BadRequestException('At least one field is required to update the task.');
     }
 
-    return this.prisma.task.update({
+    const previousTask = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, assignedToId: true },
+    });
+
+    const updatedTask = await this.prisma.task.update({
       where: { id: taskId },
       data,
       select: TASK_WITH_USERS_SELECT,
     });
+
+    if (user.role === Role.ADMIN && updatedTask.assignedToId !== user.id) {
+      await this.notificationsService.createForUser({
+        recipientUserId: updatedTask.assignedToId,
+        title: 'Task updated',
+        message: `An administrator updated your task: ${updatedTask.title}`,
+        type: NotificationType.TASK_UPDATED,
+        entityType: 'TASK',
+        entityId: updatedTask.id,
+        actionUrl: taskActionUrl(updatedTask.id),
+        metadata: { priority: updatedTask.priority, status: updatedTask.status },
+      });
+    }
+
+    if (
+      previousTask &&
+      previousTask.status !== TaskStatus.DONE &&
+      updatedTask.status === TaskStatus.DONE
+    ) {
+      await this.notificationsService.createForRole({
+        role: Role.ADMIN,
+        title: 'Task completed',
+        message: `Task completed: ${updatedTask.title}`,
+        type: NotificationType.TASK_COMPLETED,
+        entityType: 'TASK',
+        entityId: updatedTask.id,
+        actionUrl: taskActionUrl(updatedTask.id),
+        metadata: { assignedToId: updatedTask.assignedToId },
+      });
+    }
+
+    return updatedTask;
   }
 
   async deleteTask(user: AuthenticatedUser, taskId: string) {
@@ -170,11 +228,35 @@ export class TasksService {
   async updateTaskStatus(user: AuthenticatedUser, taskId: string, dto: UpdateTaskStatusDto) {
     await this.ensureTaskAccess(taskId, user);
 
-    return this.prisma.task.update({
+    const existingTask = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { status: true, assignedToId: true, title: true },
+    });
+
+    const updatedTask = await this.prisma.task.update({
       where: { id: taskId },
       data: { status: dto.status as TaskStatus },
       select: TASK_WITH_USERS_SELECT,
     });
+
+    if (
+      existingTask &&
+      existingTask.status !== TaskStatus.DONE &&
+      updatedTask.status === TaskStatus.DONE
+    ) {
+      await this.notificationsService.createForRole({
+        role: Role.ADMIN,
+        title: 'Task completed',
+        message: `Task completed: ${updatedTask.title}`,
+        type: NotificationType.TASK_COMPLETED,
+        entityType: 'TASK',
+        entityId: updatedTask.id,
+        actionUrl: taskActionUrl(updatedTask.id),
+        metadata: { assignedToId: updatedTask.assignedToId },
+      });
+    }
+
+    return updatedTask;
   }
 
   async getDashboardStats(user: AuthenticatedUser) {
@@ -320,7 +402,7 @@ export class TasksService {
   ) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
-      select: { status: true },
+      select: { id: true, status: true, title: true, assignedToId: true },
     });
 
     if (!task) throw new NotFoundException('Task not found.');
@@ -330,6 +412,17 @@ export class TasksService {
         await this.prisma.task.update({
           where: { id: taskId },
           data: { status: TaskStatus.DONE },
+        });
+
+        await this.notificationsService.createForRole({
+          role: Role.ADMIN,
+          title: 'Task completed',
+          message: `Task completed: ${task.title}`,
+          type: NotificationType.TASK_COMPLETED,
+          entityType: 'TASK',
+          entityId: task.id,
+          actionUrl: taskActionUrl(task.id),
+          metadata: { assignedToId: task.assignedToId },
         });
       }
       return TaskStatus.DONE;

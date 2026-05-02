@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AdminGetUsersQueryDto,
@@ -11,7 +12,10 @@ import {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async getPlatformStats() {
     const now = new Date();
@@ -218,6 +222,30 @@ export class AdminService {
         isActive: true,
         updatedAt: true,
       },
+    });
+
+    await this.notificationsService.createForUser({
+      recipientUserId: updated.id,
+      title: dto.isActive ? 'Account activated' : 'Account deactivated',
+      message: dto.isActive
+        ? 'Your account has been activated by an administrator.'
+        : 'Your account has been deactivated by an administrator.',
+      type: NotificationType.ACCOUNT_STATUS_CHANGED,
+      entityType: 'USER',
+      entityId: updated.id,
+      actionUrl: dto.isActive ? '/dashboard' : '/login',
+      metadata: { isActive: dto.isActive },
+    });
+
+    await this.notificationsService.createForRole({
+      role: Role.ADMIN,
+      title: 'User status changed',
+      message: `${updated.fullName} was ${dto.isActive ? 'activated' : 'deactivated'}.`,
+      type: NotificationType.USER_STATUS_CHANGED,
+      entityType: 'USER',
+      entityId: updated.id,
+      actionUrl: `/admin/users/${updated.id}`,
+      metadata: { isActive: dto.isActive },
     });
 
     return updated;

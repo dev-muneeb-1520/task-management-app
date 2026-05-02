@@ -28,18 +28,31 @@ enum Role {
   ADMIN
 }
 
+enum NotificationType {
+  USER_REGISTERED
+  USER_STATUS_CHANGED
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  ACCOUNT_STATUS_CHANGED
+  SYSTEM_NOTICE
+}
+
 model User {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   fullName      String
-  email         String   @unique
+  email         String         @unique
   password      String
   refreshToken  String?
-  role          Role     @default(USER)
-  isActive      Boolean  @default(true)
-  assignedTasks Task[]   @relation("AssignedTasks")
-  createdTasks  Task[]   @relation("CreatedTasks")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  role          Role           @default(USER)
+  isActive      Boolean        @default(true)
+  assignedTasks Task[]         @relation("AssignedTasks")
+  createdTasks  Task[]         @relation("CreatedTasks")
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Task {
@@ -76,4 +89,23 @@ model ChecklistItem {
 
   @@index([taskId])
   @@index([taskId, position])
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+  title           String
+  message         String
+  type            NotificationType
+  recipientUserId String
+  recipientUser   User             @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  entityType      String?
+  entityId        String?
+  actionUrl       String?
+  metadata        Json?
+  isRead          Boolean          @default(false)
+  readAt          DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([recipientUserId, isRead, createdAt])
+  @@index([recipientUserId, createdAt])
 }

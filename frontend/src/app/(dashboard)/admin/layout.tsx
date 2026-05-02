@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
+import NotificationsBell from "@/components/layout/NotificationsBell";
 import Sidebar from "@/components/layout/Sidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="h-5 w-5" />
           </button>
           <span className="text-sm font-bold text-gray-900">Admin Panel</span>
+          <div className="ml-auto">
+            <NotificationsBell notificationsPath="/admin/notifications" />
+          </div>
+        </header>
+
+        <header className="hidden md:flex items-center justify-end px-8 py-4 bg-white border-b border-gray-200 shrink-0">
+          <NotificationsBell notificationsPath="/admin/notifications" />
         </header>
 
         <main className="flex-1 overflow-y-auto">

@@ -6,8 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationType, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import type { StringValue } from 'ms';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -44,6 +47,17 @@ export class AuthService {
         email,
         password: hashedPassword,
       },
+    });
+
+    await this.notificationsService.createForRole({
+      role: Role.ADMIN,
+      title: 'New user registered',
+      message: `${user.fullName} joined the platform.`,
+      type: NotificationType.USER_REGISTERED,
+      entityType: 'USER',
+      entityId: user.id,
+      actionUrl: `/admin/users/${user.id}`,
+      metadata: { email: user.email },
     });
 
     return this.buildAuthResponse(user);

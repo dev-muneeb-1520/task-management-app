@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Users,
+  Bell,
 } from "lucide-react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,11 +19,13 @@ import { useAuth } from "@/features/auth/useAuth";
 const userNavItems = [
   { href: "/dashboard",       label: "Dashboard",   icon: LayoutDashboard },
   { href: "/dashboard/tasks", label: "My Tasks",    icon: CheckSquare },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
 ];
 
 const adminMenuItems = [
   { href: "/admin",           label: "Dashboard",   icon: LayoutDashboard },
   { href: "/dashboard/tasks", label: "Users Tasks", icon: CheckSquare },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
 ];
 
 const adminSectionItems = [

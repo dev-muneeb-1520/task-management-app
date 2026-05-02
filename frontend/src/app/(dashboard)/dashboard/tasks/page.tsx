@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, ListTodo, CheckCircle2, Clock, Flame, Eye } from "lucide-react";
 import TaskDetailsModal from "@/components/shared/TaskDetailsModal";
 import { useTasks } from "@/features/tasks/useTasks";
@@ -36,6 +37,9 @@ function PriorityBadge({ priority }: { priority: TaskPriority }) {
 }
 
 export default function TasksPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const TASKS_PAGE_LIMIT = 10;
 
   const { user, isInitialized, isAuthenticated } = useAuth();
@@ -75,6 +79,7 @@ export default function TasksPage() {
   const [page, setPage] = useState(1);
 
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const selectedTaskIdParam = searchParams.get("taskId");
 
   useEffect(() => {
     if (!isInitialized || !isAuthenticated) return;
@@ -104,6 +109,27 @@ export default function TasksPage() {
     const visibleTaskIds = new Set(tasks.map((task) => task.id));
     setSelectedTaskIds((prev) => prev.filter((id) => visibleTaskIds.has(id)));
   }, [tasks]);
+
+  useEffect(() => {
+    if (!isInitialized || !isAuthenticated || !selectedTaskIdParam) return;
+
+    const openFromQuery = async () => {
+      setViewingId(selectedTaskIdParam);
+      clearError();
+
+      try {
+        const fullTask = await fetchTaskById(selectedTaskIdParam);
+        setSelectedTask(fullTask);
+        setShowDetailsModal(true);
+      } catch {
+        // Ignore invalid/deleted task IDs from query string.
+      } finally {
+        setViewingId(null);
+      }
+    };
+
+    void openFromQuery();
+  }, [clearError, fetchTaskById, isAuthenticated, isInitialized, selectedTaskIdParam]);
 
   const handleDelete = async (id: string) => {
     const ANIMATION_MS = 220;
@@ -277,6 +303,14 @@ export default function TasksPage() {
   const closeDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedTask(null);
+
+    if (selectedTaskIdParam) {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete("taskId");
+      const nextQuery = nextParams.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    }
+
     void fetchTasks({
       page,
       limit: TASKS_PAGE_LIMIT,

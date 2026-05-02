@@ -46,6 +46,7 @@ export default function CustomSelect<T extends string = string>({
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selected = useMemo(
     () => options.find((option) => option.value === value),
@@ -83,8 +84,11 @@ export default function CustomSelect<T extends string = string>({
     window.addEventListener("resize", handleResize);
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideRoot = rootRef.current?.contains(target) ?? false;
+      const clickedInsideMenu = menuRef.current?.contains(target) ?? false;
+
+      if (!clickedInsideRoot && !clickedInsideMenu) {
         setOpen(false);
       }
     };
@@ -166,6 +170,7 @@ export default function CustomSelect<T extends string = string>({
       {open && usePortal && position && typeof document !== "undefined"
         ? createPortal(
             <div
+              ref={menuRef}
               className={cn(
                 "fixed rounded-xl border border-gray-200 bg-white shadow-2xl z-50 overflow-hidden animate-fade-in py-1",
                 menuClassName
@@ -184,6 +189,7 @@ export default function CustomSelect<T extends string = string>({
         : open && !usePortal
         ? (
             <div
+              ref={menuRef}
               className={cn(
                 "absolute top-full left-0 mt-2 rounded-xl border border-gray-200 bg-white shadow-2xl z-40 overflow-hidden animate-fade-in py-1",
                 align === "right" && "right-0 left-auto",
