@@ -1,6 +1,6 @@
 # TaskFlow — Task Management App
 
-A full-stack task management application with JWT authentication, task CRUD, checklist management, and bulk operations.
+A full-stack task management application with JWT authentication, task CRUD, checklist management, bulk operations, and realtime notifications.
 
 ## What's Inside
 
@@ -25,6 +25,10 @@ task-management-app/
 - Bulk operations — delete selected tasks or delete all tasks
 - Dashboard with task stats, completion rate, and priority breakdown
 - Paginated task list with search and filters (status, priority)
+- Notification center with read/unread state and pagination
+- Realtime notifications via Socket.IO for task/user/admin events
+- Deep-link notification actions (open the related task/user directly)
+- Admin dashboard and user management (status controls, assignment views)
 
 ## Quick Start
 
@@ -76,7 +80,8 @@ backend/
   src/
     auth/         — Register, login, refresh, logout, profile
     tasks/        — Task CRUD, bulk delete, dashboard stats
-    checklist/    — Checklist item management per task
+    notifications/— Notification APIs + realtime gateway
+    admin/        — Admin dashboard and user management
     prisma/       — Prisma service
     common/       — Global filters and interceptors
   prisma/
@@ -86,7 +91,7 @@ backend/
 frontend/
   src/
     app/          — Next.js App Router pages
-    features/     — Redux slices + hooks (auth, tasks)
+    features/     — Redux slices + hooks (auth, tasks, admin, notifications)
     services/     — API call functions
     components/   — UI and layout components
     lib/          — Axios client, token storage, utils
@@ -127,6 +132,18 @@ Base URL: `http://localhost:3001`
 | POST   | /tasks/:id/checklist  | Add checklist item        |
 | PATCH  | /tasks/:id/checklist/:itemId | Update checklist item |
 | DELETE | /tasks/:id/checklist/:itemId | Delete checklist item |
+| GET    | /notifications        | List notifications        |
+| GET    | /notifications/unread-count | Get unread count    |
+| PATCH  | /notifications/:id/read | Mark notification read |
+| PATCH  | /notifications/read-all | Mark all as read       |
+| GET    | /admin/stats          | Admin platform stats      |
+| GET    | /admin/users          | Admin users list          |
+| GET    | /admin/users/:id      | Admin user detail         |
+| PATCH  | /admin/users/:id/status | Activate/deactivate user |
+
+Realtime namespace:
+
+- `ws://localhost:3001/notifications` (Socket.IO namespace)
 
 Full API reference with request/response examples: [backend/README.md](backend/README.md)
 
@@ -137,6 +154,13 @@ Full API reference with request/response examples: [backend/README.md](backend/R
 - ✅ Added admin dashboard with platform-wide statistics
 - ✅ Added live user search with filtering and sorting
 - ✅ Added user status management (activate/deactivate)
+
+### v1.2 — Notifications Integration
+- ✅ Added notifications module and database model
+- ✅ Added notifications REST APIs with read/unread support
+- ✅ Added Socket.IO realtime notifications gateway
+- ✅ Added frontend notifications bell and notifications center pages
+- ✅ Added deep-link action URLs for task and user related notifications
 
 ## License
 

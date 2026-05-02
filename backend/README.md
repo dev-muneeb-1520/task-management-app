@@ -9,6 +9,9 @@ This README is written for a new developer who just cloned the repository.
 - User authentication with JWT access and refresh tokens.
 - Task CRUD with search, filtering, and pagination.
 - Checklist CRUD under each task, including reorder support.
+- Admin endpoints for platform stats and user management.
+- Notifications REST API with read/unread flows.
+- Realtime notification delivery via Socket.IO.
 - Dashboard analytics endpoint for task stats.
 - Swagger API docs enabled by default.
 
@@ -18,6 +21,7 @@ This README is written for a new developer who just cloned the repository.
 - Prisma ORM + PostgreSQL
 - JWT auth
 - Class-validator request validation
+- Socket.IO (NestJS WebSockets)
 - Swagger (OpenAPI)
 
 ## 3) Prerequisites
@@ -38,7 +42,9 @@ backend/
     migrations/
   src/
     auth/
+    admin/
     tasks/
+    notifications/
     prisma/
     common/
     main.ts
@@ -267,17 +273,22 @@ Main models in prisma/schema.prisma:
 - User
 - Task
 - ChecklistItem
+- Notification
 
 Enums:
 
 - TaskPriority: LOW, MEDIUM, HIGH
 - TaskStatus: TODO, IN_PROGRESS, DONE
+- Role: USER, ADMIN
+- NotificationType: USER_REGISTERED, USER_STATUS_CHANGED, TASK_ASSIGNED, TASK_UPDATED, TASK_COMPLETED, TASK_DUE_SOON, TASK_OVERDUE, ACCOUNT_STATUS_CHANGED, SYSTEM_NOTICE
 
 Relations:
 
 - One user has many tasks.
 - One task has many checklist items.
+- One user has many notifications.
 - Deleting a user cascades to tasks.
+- Deleting a user cascades to notifications.
 - Deleting a task cascades to checklist items.
 
 ## 8) Auth Model and Token Flow
@@ -485,6 +496,68 @@ All checklist endpoints are task-scoped and require auth.
 5. DELETE /tasks/:id/checklist/:itemId
 - Deletes one checklist item and returns updated progress
 
+### 10.4 Admin Endpoints
+
+All admin endpoints require:
+- Bearer access token
+- ADMIN role
+
+1. GET /admin/stats
+- Returns platform-wide users/tasks statistics
+
+2. GET /admin/users
+- Query params (optional):
+  - search
+  - page
+  - limit
+  - status: ACTIVE | INACTIVE
+  - sortBy: createdAt | fullName | tasksAssigned
+  - sortOrder: asc | desc
+
+3. GET /admin/users/all
+- Returns all active users for task assignment
+
+4. GET /admin/users/:id
+- Returns user detail and recent assigned tasks
+
+5. PATCH /admin/users/:id/status
+- Body:
+~~~json
+{
+  "isActive": false
+}
+~~~
+
+### 10.5 Notifications Endpoints
+
+All notifications endpoints require a valid Bearer access token.
+
+1. GET /notifications
+- Query params (optional):
+  - page
+  - limit
+  - status: ALL | READ | UNREAD
+  - type: NotificationType
+
+2. GET /notifications/unread-count
+- Returns current unread notifications count
+
+3. PATCH /notifications/:id/read
+- Marks a single notification as read
+
+4. PATCH /notifications/read-all
+- Marks all notifications for the current user as read
+
+### 10.6 Notifications WebSocket
+
+- Namespace: `/notifications`
+- Client must provide access token via socket auth or Authorization header
+- Server emits events such as:
+  - `notification:new`
+  - `notification:updated`
+  - `notifications:read-all`
+  - `notifications:unread-count`
+
 ## 11) Typical Local Development Workflow
 
 1. Start PostgreSQL.
@@ -545,6 +618,7 @@ npm run start:prod
 - Auth controller/service: src/auth/auth.controller.ts, src/auth/auth.service.ts
 - Tasks controller/service: src/tasks/tasks.controller.ts, src/tasks/tasks.service.ts
 - Admin controller/service: src/admin/admin.controller.ts, src/admin/admin.service.ts
+- Notifications controller/service/gateway: src/notifications/notifications.controller.ts, src/notifications/notifications.service.ts, src/notifications/notifications.gateway.ts
 - Prisma schema: prisma/schema.prisma
 - Environment template: .env.example
 

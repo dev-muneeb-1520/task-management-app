@@ -11,6 +11,9 @@ This README is written for a new developer who just cloned the repository.
 - Task list with search, filtering by status/priority, and pagination.
 - Full task CRUD — create, view details, edit, update status, delete one, delete selected, delete all.
 - Checklist management under each task — add/edit/reorder/delete items.
+- Realtime notifications with unread badges and notification center pages.
+- Notification deep links to related task/user pages.
+- Admin dashboard, user management, and admin notifications view.
 - Animated UI interactions for all mutation flows.
 
 ## 2) Tech Stack
@@ -38,18 +41,29 @@ frontend/
       (auth)/
         login/          — Login page
         register/       — Register page
+      (admin-auth)/
+        admin/login/    — Admin login page
       (dashboard)/
         dashboard/
           page.tsx      — Dashboard stats page
           tasks/
             page.tsx    — Task list page
+          notifications/
+            page.tsx    — User notifications page
+        admin/
+          page.tsx      — Admin dashboard
+          users/        — User management and user details
+          notifications/— Admin notifications page
     components/
       layout/
         Sidebar.tsx
         PageHeader.tsx
+        NotificationsBell.tsx
       shared/
         TaskFormModal.tsx
         TaskDetailsModal.tsx
+        NotificationsCenter.tsx
+        NotificationsSocketManager.tsx
       ui/
         Badge, Button, Card, Input, Spinner
     features/
@@ -59,6 +73,12 @@ frontend/
       tasks/
         tasksSlice.ts   — Tasks Redux state + thunks
         useTasks.ts     — Tasks hook
+      notifications/
+        notificationsSlice.ts — Notifications Redux state + thunks
+        useNotifications.ts   — Notifications hook
+      admin/
+        adminSlice.ts   — Admin Redux state + thunks
+        useAdmin.ts     — Admin hook
     lib/
       apiClient.ts      — Axios instance + auth + refresh interceptors
       authTokens.ts     — Cookie token storage
@@ -67,6 +87,8 @@ frontend/
     services/
       authService.ts    — Auth API calls
       taskService.ts    — Task API calls
+      notificationService.ts — Notification API calls
+      adminService.ts   — Admin API calls
     store/
       index.ts
       hooks.ts
@@ -153,8 +175,14 @@ All environment variables are prefixed with NEXT_PUBLIC_ to be accessible in the
 | /                            | No            | Redirects to /login or /dashboard/tasks |
 | /login                       | No            | Login form                   |
 | /register                    | No            | Registration form            |
+| /admin/login                 | No            | Admin login form             |
 | /dashboard                   | Yes           | Dashboard stats overview     |
 | /dashboard/tasks             | Yes           | Task list, filters, CRUD     |
+| /dashboard/notifications     | Yes           | User notifications center    |
+| /admin                       | Yes (ADMIN)   | Admin dashboard              |
+| /admin/users                 | Yes (ADMIN)   | Admin users list             |
+| /admin/users/:id             | Yes (ADMIN)   | User detail + controls       |
+| /admin/notifications         | Yes (ADMIN)   | Admin notifications center   |
 
 ## 10) State Management
 
@@ -200,6 +228,39 @@ State fields:
 
 Hook: `useTasks()`
 
+### Notifications slice (`notificationsSlice.ts`)
+
+Actions:
+- `fetchNotifications` — list notifications with pagination/filter
+- `fetchUnreadCount` — unread badge count
+- `markNotificationRead` — mark one as read
+- `markAllNotificationsRead` — mark all as read
+
+State fields:
+- `items`
+- `pagination`
+- `query`
+- `unreadCount`
+- `isLoading`, `isRefreshing`, `isMarking`, `error`
+
+Hook: `useNotifications()`
+
+### Admin slice (`adminSlice.ts`)
+
+Actions:
+- `fetchAdminStats`
+- `fetchAdminUsers`
+- `fetchAdminUserById`
+- `fetchAssignmentUsers`
+- `updateAdminUserStatus`
+
+State fields:
+- `stats`, `users`, `userDetail`, `assignmentUsers`
+- `pagination`
+- `isStatsLoading`, `isUsersLoading`, `isDetailLoading`, `isMutating`, `error`
+
+Hook: `useAdmin()`
+
 ## 11) API Client
 
 `src/lib/apiClient.ts` is the central Axios instance.
@@ -217,11 +278,14 @@ Key behaviors:
 
 - `TaskFormModal` — Create and edit task form
 - `TaskDetailsModal` — View task details + full checklist management (add/edit/reorder/delete)
+- `NotificationsCenter` — Paginated notifications page UI
+- `NotificationsSocketManager` — Socket.IO listeners to sync unread count/list in realtime
 
 ### Layout components
 
 - `Sidebar` — Navigation sidebar
 - `PageHeader` — Page heading bar
+- `NotificationsBell` — Header bell with recent notifications dropdown
 
 ### UI primitives
 
@@ -260,6 +324,7 @@ npm run dev
 3. Open http://localhost:3000.
 4. Register a new account or log in.
 5. Use the dashboard and task list.
+6. Open notifications from the bell or `/dashboard/notifications`.
 
 ## 16) Troubleshooting
 
@@ -300,8 +365,12 @@ For deployment:
 - Tasks state: src/features/tasks/tasksSlice.ts
 - Auth API calls: src/services/authService.ts
 - Task API calls: src/services/taskService.ts
+- Notifications API calls: src/services/notificationService.ts
+- Admin API calls: src/services/adminService.ts
 - Task list page: src/app/(dashboard)/dashboard/tasks/page.tsx
 - Dashboard page: src/app/(dashboard)/dashboard/page.tsx
+- Notifications center page: src/components/shared/NotificationsCenter.tsx
+- Notifications socket manager: src/components/shared/NotificationsSocketManager.tsx
 - Environment template: .env.example
 
 ## 19) Recent Changes
@@ -315,3 +384,9 @@ For deployment:
 - ✅ Unified all frontend dropdowns to custom-styled `CustomSelect` component
 - ✅ Added calendar date picker with past-date blocking for task due dates
 - ✅ Auto-sync task status to IN_PROGRESS/DONE based on checklist completion
+
+### v1.2 — Notifications Integration
+- ✅ Added realtime notifications via Socket.IO
+- ✅ Added notifications bell with unread count and quick actions
+- ✅ Added notifications center pages for user and admin
+- ✅ Added notification deep-link actions to open related task/user
